@@ -146,6 +146,30 @@ def test_portable_skill_surface_rejects_forced_gh(tmp_path, capsys):
     assert "FORCED GITHUB TOOLING" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    "private_context",
+    [
+        "mole-mac",
+        "MoleApp",
+        "tw93/Mole",
+        ".codex/sessions",
+        ".codex/memories",
+        "rollout_summaries/example.jsonl",
+        "thread_id",
+        "rollout_path",
+        "Dodo",
+    ],
+)
+def test_portable_skill_surface_rejects_private_context(tmp_path, capsys, private_context):
+    path = tmp_path / "skills" / "think" / "SKILL.md"
+    path.parent.mkdir(parents=True)
+    path.write_text(f"Distill the evidence from {private_context}.\n")
+
+    with pytest.raises(SystemExit):
+        check_portable_skill_surface(tmp_path, [path])
+    assert "PRIVATE PROJECT OR SESSION CONTEXT" in capsys.readouterr().err
+
+
 def test_portable_skill_surface_warns_on_project_names(tmp_path, capsys):
     path = tmp_path / "skills" / "write" / "SKILL.md"
     path.parent.mkdir(parents=True)

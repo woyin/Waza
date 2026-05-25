@@ -60,6 +60,7 @@ assert_block_status "$clean_out" "AGENT DOC DEDUP" "PASS"
 assert_block_status "$clean_out" "DRIFT MARKERS" "PASS"
 # Surfaces absent in the clean fixture -> N/A (not PASS).
 assert_block_status "$clean_out" "PACKAGING FILTER POSTURE" "N/A"
+assert_block_status "$clean_out" "CLI CONTRACT SURFACE" "N/A"
 assert_block_status "$clean_out" "DUPLICATE SETUP SCRIPTS" "N/A"
 assert_block_status "$clean_out" "DENYLIST IN BUILD" "N/A"
 
@@ -125,9 +126,56 @@ assert_block_status "$dirty_out" "HEREDOC BLOAT" "WARN"
 assert_block_status "$dirty_out" "TEST AND CI SURFACE" "FAIL"
 assert_block_status "$dirty_out" "VERSION SOURCE COUNT" "WARN"
 assert_block_status "$dirty_out" "PACKAGING FILTER POSTURE" "WARN"
+assert_block_status "$dirty_out" "CLI CONTRACT SURFACE" "N/A"
 assert_block_status "$dirty_out" "INSTALL URL PINNING" "WARN"
 assert_block_status "$dirty_out" "AGENT DOC DEDUP" "WARN"
 assert_block_status "$dirty_out" "DUPLICATE SETUP SCRIPTS" "WARN"
+
+# Case 3: CLI entrypoint without contract coverage -> WARN.
+cli_warn=$(make_tmpdir)
+mkdir -p "$cli_warn/bin" "$cli_warn/src"
+cat > "$cli_warn/bin/examplecli" <<'SH'
+#!/usr/bin/env bash
+echo run
+SH
+chmod +x "$cli_warn/bin/examplecli"
+echo "print('lib')" > "$cli_warn/src/lib.py"
+
+cli_warn_out="$cli_warn/audit.out"
+python3 "$AUDIT" --root "$cli_warn" > "$cli_warn_out"
+assert_block_status "$cli_warn_out" "CLI CONTRACT SURFACE" "WARN"
+
+# Case 4: CLI entrypoint with help/version/stream/exit evidence -> PASS.
+cli_pass=$(make_tmpdir)
+mkdir -p "$cli_pass/bin" "$cli_pass/tests" "$cli_pass/.github/workflows"
+cat > "$cli_pass/bin/examplecli" <<'SH'
+#!/usr/bin/env bash
+case "${1:-}" in
+  --help) echo "usage: examplecli";;
+  --version) echo "examplecli 1.0.0";;
+  *) echo "run";;
+esac
+SH
+chmod +x "$cli_pass/bin/examplecli"
+cat > "$cli_pass/tests/test_cli.sh" <<'SH'
+#!/usr/bin/env bash
+examplecli --help
+examplecli --version
+# Contract checks cover exit code, stdout, stderr, and non-interactive mode.
+SH
+cat > "$cli_pass/.github/workflows/test.yml" <<'YAML'
+name: test
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: bash tests/test_cli.sh
+YAML
+
+cli_pass_out="$cli_pass/audit.out"
+python3 "$AUDIT" --root "$cli_pass" > "$cli_pass_out"
+assert_block_status "$cli_pass_out" "CLI CONTRACT SURFACE" "PASS"
 
 # Script exits 0 even when findings surface (it's a reporter, not a gate).
 python3 "$AUDIT" --root "$dirty" >/dev/null

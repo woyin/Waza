@@ -27,6 +27,11 @@ PERSONAL_PATH_PATTERN = re.compile(r'/(?:Users|home)/[A-Za-z0-9._-]+/')
 SKILL_REF_RE = re.compile(r'skills/([a-z][a-z0-9_-]*)/SKILL\.md')
 PROJECT_SPECIFIC_NAME_RE = re.compile(r'\b(?:Mole|MiaoYan|Kami|Kaku|Pake)\b')
 PROJECT_RITUAL_RE = re.compile(r'\b(?:Sparkle|MAS|Homebrew tap|Xcode scheme)\b', re.IGNORECASE)
+PRIVATE_CONTEXT_RE = re.compile(
+    r'(?:mole-mac|MoleApp|tw93/Mole|\.codex/(?:sessions|memories)|'
+    r'rollout_summaries/|thread_id|rollout_path|session_meta|Dodo)',
+    re.IGNORECASE,
+)
 FORCED_GITHUB_TOOL_RE = re.compile(
     r'(?:Use\s+`?gh`?\s+CLI\s+for\s+all\s+GitHub\s+interactions|'
     r'for\s+all\s+GitHub\s+interactions,\s+not\s+MCP\s+or\s+raw\s+API)',
@@ -320,6 +325,12 @@ def check_portable_skill_surface(root: Path, markdown_paths: list[Path]):
             fail(
                 f"FORCED GITHUB TOOLING IN GENERIC SURFACE: {rel}\n"
                 f"  GitHub projects may prefer gh, but Waza must derive platform tools from project context."
+            )
+        if PRIVATE_CONTEXT_RE.search(text):
+            fail(
+                f"PRIVATE PROJECT OR SESSION CONTEXT IN PORTABLE SURFACE: {rel}\n"
+                f"  Public skills and rules must not copy private project names, session paths, "
+                f"memory paths, rollout metadata, support vendors, or thread identifiers."
             )
         if PROJECT_SPECIFIC_NAME_RE.search(text) or PROJECT_RITUAL_RE.search(text):
             warning_paths.append(rel.as_posix())

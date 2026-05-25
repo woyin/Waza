@@ -140,7 +140,7 @@ Activate when the user asks for a project-wide code-quality scorecard: "audit", 
 
 **Flow**
 
-1. Run `python3 <waza>/skills/check/scripts/audit_signals.py --root <project>` from the target repo. The script emits ten labelled blocks (`=== FILE SIZE HOTSPOTS ===` ... `=== DENYLIST IN BUILD ===`) each ending with `status: PASS|WARN|FAIL`.
+1. Run `python3 <waza>/skills/check/scripts/audit_signals.py --root <project>` from the target repo. The script emits labelled blocks (`=== FILE SIZE HOTSPOTS ===` ... `=== DENYLIST IN BUILD ===`) each ending with `status: PASS|WARN|FAIL|N/A`.
 2. Skim the largest source files surfaced by `FILE SIZE HOTSPOTS` (typically 3-5; stop sooner if the architecture is already clear).
 3. Read `CLAUDE.md` / `AGENTS.md` / `README.md` to learn the project's own stated conventions before judging it against generic ones.
 4. Apply the four-axis rubric below. Each axis is independently scored 0-10. Overall = arithmetic mean.
@@ -220,6 +220,14 @@ Drift signals (examples, not exhaustive -- any one is enough to label drift):
 ## Pattern-Fix Completeness
 
 When the diff fixes one instance of a class-of-bug (a missing validation, a wrong selector, an off-by-one, a missing lock), the same shape often lives elsewhere. Extract the pattern signature, `grep -rn` it across the repo (exclude generated dirs), and confirm sibling instances were also handled. List any unswept sibling: flag it as a hard stop when it carries the same risk, advisory when lower-risk. For a deeper sweep playbook, see hunt's Scope Blast Mode.
+
+## CLI Command Surface
+
+When a diff touches a CLI entrypoint, installer, completion, config/env handling, package wrapper, or a mutating command such as cleanup, update, uninstall, migration, or cache removal, fill the CLI Command Surface from `references/project-context.md` before sign-off.
+
+Check command contract and installed-runtime behavior, not just library tests: help/version, subcommands/flags, exit codes, stdout/stderr, JSON/schema output, TTY/non-interactive paths, env/config precedence, shebang/executable bit, PATH shim, and package-manager install path when applicable.
+
+For mutating CLI commands, also run the Safety Sink Review: dry-run or confirmation path, operation log or rollback story, retry/idempotency, signal/partial-failure handling, and test-mode guards for auth prompts or real system changes.
 
 ## Hard Stops (fix before merging)
 

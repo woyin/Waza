@@ -16,6 +16,12 @@ Do not hard-code machine-specific memory roots, and do not read raw transcripts.
 
 Read durable context in this order: user-provided path, current project scope, then global preferences. List titles first, then open at most 1-2 relevant summaries. Treat cross-project entries as transferable patterns only.
 
+## Memory distillation redaction gate
+
+When turning prior chats, durable memory, or cross-project notes into reusable Waza guidance, promote only workflow rules. Strip raw transcript text, screenshots, local paths, project-specific commands, issue or PR numbers, release tags, commit hashes, private product boundaries, paid or license details, support routing, user names, and one-machine state.
+
+If an example is necessary, use neutral placeholders such as `ExampleCLI`, `ExampleApp`, `<issue>`, `<release>`, or `<command>`. Do not copy a private answer, maintainer reply, screenshot observation, or project-specific incident as a durable rule.
+
 ## Memory type mapping
 
 - `decision`, `preference`, and `principle` are constraints for the current task (planning, design, review, debugging, voice, audit expectations, etc., depending on skill).

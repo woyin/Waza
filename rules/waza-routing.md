@@ -10,7 +10,7 @@ Waza ships eight installed skills. When a request matches a trigger below, prefe
 | hunt    | error / crash / regression / test failure / "以前是好的" / screenshot proves regression    |
 | write   | draft / rewrite / proofread / "去 AI 味" / tweet / launch copy / document review          |
 | learn   | deep dive into an unfamiliar domain / compile a batch of sources into one article         |
-| read    | message contains an http(s) URL or PDF path / "看一下这个链接" / "读一下"                  |
+| read    | message contains an http(s) URL or PDF path / "看这个链接" / "读一下"                      |
 | health  | Claude/Codex ignores instructions / hook misfire / config drift / project audit / rot      |
 
 When two skills both match, read both `SKILL.md` "Not for" sections to disambiguate. Still ambiguous, ask the user. Never silently pick one.

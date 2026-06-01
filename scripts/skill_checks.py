@@ -518,6 +518,46 @@ def check_waza_routing_skills(root: Path, skill_names: set[str]):
     print(f"ok: rules/waza-routing.md skills match ({len(listed)} skills)")
 
 
+def check_waza_routing_triggers(root: Path):
+    """Quoted user-utterance triggers in rules/waza-routing.md must be grounded.
+
+    The routing table's prose stays hand-tuned, but any phrase in quotes is a
+    claim about what a user literally types. Each quoted phrase (split on '/',
+    whitespace-normalized) must appear in the matching skill's when_to_use, so
+    the routing hint can never advertise a trigger no skill actually claims.
+    Unquoted wording is intentionally free and is not checked here.
+    """
+    path = root / "rules" / "waza-routing.md"
+    if not path.exists():
+        return
+    norm = lambda s: re.sub(r"\s+", "", s)  # noqa: E731
+    for line in path.read_text().splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.split("|")]
+        if len(cells) < 3:
+            continue
+        skill = cells[1]
+        if not re.fullmatch(r"[a-z][a-z0-9_-]*", skill):
+            continue
+        skill_md = root / "skills" / skill / "SKILL.md"
+        if not skill_md.exists():
+            continue  # missing skill dir is check_waza_routing_skills' job
+        when = norm(parse_frontmatter(skill_md)["when_to_use"])
+        for quoted in re.findall(r'[\"\u201c\u201d]([^\"\u201c\u201d]+)[\"\u201c\u201d]', cells[2]):
+            for seg in quoted.split("/"):
+                seg_norm = norm(seg)
+                if seg_norm and seg_norm not in when:
+                    fail(
+                        f"WAZA ROUTING UNGROUNDED TRIGGER: rules/waza-routing.md "
+                        f"row '{skill}' quotes {seg!r}, but it is absent from "
+                        f"skills/{skill}/SKILL.md when_to_use.\n"
+                        f"  Quote only phrases a user actually types; align the "
+                        f"phrase with when_to_use or add it to when_to_use."
+                    )
+    print("ok: rules/waza-routing.md quoted triggers grounded")
+
+
 def check_readme_install_command(root: Path):
     """README must show the default install command users can copy-paste."""
     readme = root / "README.md"

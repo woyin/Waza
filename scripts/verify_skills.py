@@ -40,6 +40,7 @@ from skill_checks import (  # noqa: E402
     check_table_pipes,
     check_trigger_overlap,
     check_waza_routing_skills,
+    check_waza_routing_triggers,
     collect_all_md,
 )
 
@@ -96,6 +97,7 @@ def main() -> int:
     check_trigger_overlap(skill_keywords)
     check_rules_files_present(root)
     check_waza_routing_skills(root, skill_names)
+    check_waza_routing_triggers(root)
     check_readme_install_command(root)
     check_english_coaching_guard(root)
     check_attribution_leak(root)

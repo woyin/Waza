@@ -75,6 +75,8 @@ Activate when the user sends a screenshot or image alongside a complaint ("这�
 - Do not flatten specific taste feedback into generic UI adjectives. "More premium" is not a diagnosis; "caption baseline drifts above the Chinese line" is.
 - If the screenshot exposes a regression, broken render, timing issue, or generated asset defect rather than taste, route to `/hunt` and preserve the visual evidence.
 
+**Native screenshot handoff.** For native apps, once you have proven the app builds, runs, and can reach the target view, do not spend repeated cycles fighting focus, window ordering, or coordinate-click automation just to capture final visual proof. Make one bounded automation attempt. If it is flaky, name the exact screen and ask the user for the screenshot to iterate against. This is a visual QA boundary, not a substitute for build/run verification.
+
 **Boundary**: if the fix requires changing 3 or more components, or if it reveals a direction problem rather than a specific bug, pause and run the full direction lock before continuing.
 
 **Redesign priority order** (when reworking an existing UI rather than building from scratch): font replacement → color cleanup → hover/active states → layout and whitespace → replace generic components → add loading/empty/error states → typographic polish. This order maximizes visual lift while minimizing the blast radius of each pass. Full rules in `references/design-reference.md`. Common traps and absolute CSS bans: `references/design-traps.md`.

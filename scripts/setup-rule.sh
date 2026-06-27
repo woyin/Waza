@@ -13,7 +13,7 @@ set -e
 
 RULE="${1:-}"
 TARGET="${2:-claude-code}"
-WAZA_REF="${WAZA_REF:-v3.29.0}"
+WAZA_REF="${WAZA_REF:-v3.30.0}"
 
 if [ -z "$RULE" ]; then
   echo "Usage: setup-rule.sh <rule-name> [claude-code|codex]" >&2

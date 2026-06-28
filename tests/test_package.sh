@@ -32,11 +32,15 @@ for forbidden in \
   VERSION \
   package.json \
   packaging.allowlist \
+  scripts/check_routing_drift.py \
   scripts/verify_skills.py \
   scripts/verify-skills.sh \
   scripts/build_metadata.py \
   scripts/package-skill.sh \
-  scripts/packaging_filter.py; do
+  scripts/packaging_filter.py \
+  scripts/skill_checks.py \
+  scripts/skill_frontmatter.py \
+  scripts/validate_package.py; do
   if grep -qx "$forbidden" "$tmpdir/manifest"; then
     echo "forbidden file leaked into package: $forbidden"; exit 1
   fi

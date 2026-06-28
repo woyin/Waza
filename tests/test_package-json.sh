@@ -54,6 +54,16 @@ forbidden = {
     "dist/waza.zip",
     "tests/test_package.sh",
     "packaging.allowlist",
+    "scripts/build_metadata.py",
+    "scripts/check_routing_drift.py",
+    "scripts/dispatcher-template.md",
+    "scripts/dispatcher.md",
+    "scripts/package-skill.sh",
+    "scripts/packaging_filter.py",
+    "scripts/skill_checks.py",
+    "scripts/skill_frontmatter.py",
+    "scripts/validate_package.py",
+    "scripts/verify_skills.py",
 }
 leaked = sorted(forbidden & files)
 if leaked:

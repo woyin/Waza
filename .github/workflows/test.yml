@@ -9,10 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Pin Python (keep CI behavior reproducible from local dev)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq ripgrep python3 python3-pip
+        run: sudo apt-get update && sudo apt-get install -y jq ripgrep
       - name: Install pytest for unit layer
-        run: python3 -m pip install --user --break-system-packages pytest
+        run: python3 -m pip install pytest
       - name: Install shellcheck (pinned to keep CI behavior reproducible from local dev)
         env:
           SHELLCHECK_VERSION: v0.10.0

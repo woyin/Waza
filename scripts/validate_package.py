@@ -17,13 +17,24 @@ import sys
 from pathlib import Path
 
 
-EXPECTED_SKILLS = ["think", "ui", "check", "hunt", "write", "learn", "read", "health"]
+# Derived from the repo's skills/ tree so a renamed or added skill is expected
+# automatically; validate_package runs from the repo checkout at build time.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+EXPECTED_SKILLS = sorted(p.parent.name for p in (REPO_ROOT / "skills").glob("*/SKILL.md"))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("stage", type=Path, help="Extracted ZIP root")
     args = parser.parse_args()
+
+    if not EXPECTED_SKILLS:
+        print(
+            "POST-PACKAGE ERROR: no skills found under repo skills/*/SKILL.md; "
+            "cannot validate inlined sections",
+            file=sys.stderr,
+        )
+        return 1
 
     root_skill = args.stage / "SKILL.md"
     if not root_skill.exists():

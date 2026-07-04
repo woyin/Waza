@@ -15,6 +15,10 @@ Generated files:
   - README.md                          install URLs pinned to VERSION
   - package.json                       npm/Pi package metadata pinned to VERSION
   - skills/*/scripts/check-update.sh   direct-install update checker copies
+  - skills/*/references/durable-context.md
+                                        direct-install copies of the shared
+                                        durable-context preamble (only skills
+                                        whose SKILL.md links it)
   - scripts/check-update.sh            LOCAL_VERSION pinned to VERSION
   - scripts/setup-rule.sh              default WAZA_REF pinned to VERSION
   - scripts/setup-statusline.sh        default WAZA_REF pinned to VERSION
@@ -40,7 +44,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from skill_frontmatter import parse_frontmatter  # noqa: E402
+from skill_frontmatter import (  # noqa: E402
+    parse_frontmatter,
+    should_include_codex_mirror_file,
+)
 
 
 # Hand-maintained marketplace/plugin constants. Kept here (not in frontmatter)
@@ -82,23 +89,14 @@ CODEX_DESCRIPTION = (
     "Engineering workflow skills for Codex: think, check, hunt, ui, read, "
     "write, learn, and health."
 )
-CODEX_MIRROR_IGNORED_DIRS = {
-    "__pycache__",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-}
-CODEX_MIRROR_IGNORED_NAMES = {
-    ".DS_Store",
-}
-CODEX_MIRROR_IGNORED_SUFFIXES = {
-    ".pyc",
-    ".pyo",
-}
 # Relative location of the update checker under any install root: the repo root
 # ships it at scripts/check-update.sh, and every skill directory carries the same
 # copy so direct `npx skills add` installs (which omit the repo root) still have it.
 CHECK_UPDATE_SCRIPT = Path("scripts/check-update.sh")
+# Shared durable-context preamble: source of truth in rules/, copied into each
+# referencing skill's references/ so direct installs resolve the link locally.
+DURABLE_CONTEXT_RULE = Path("rules/durable-context.md")
+DURABLE_CONTEXT_COPY = Path("references/durable-context.md")
 
 
 def read_version(root: Path) -> str:
@@ -326,7 +324,7 @@ LOCAL_VERSION_RE = re.compile(
 )
 
 
-def render_readme(current: str, version: str) -> str:
+def render_readme(current: str) -> str:
     current = README_INSTALL_URL_RE.sub(
         r"https://github.com/tw93/Waza/releases/latest/download/\1", current
     )
@@ -372,12 +370,35 @@ def bytes_diff(label: str, expected: bytes, actual: bytes) -> str:
     )
 
 
-def collect_skill_update_scripts(root: Path, rendered_check_update: str) -> dict[str, bytes]:
+def collect_skill_shared_assets(root: Path, rendered_check_update: str) -> dict[str, bytes]:
+    """Per-skill copies of shared assets that direct installs need locally.
+
+    `npx skills add` copies only each skill directory, so every skill carries
+    its own update checker, and every skill whose SKILL.md links the shared
+    durable-context preamble carries a references/ copy of it.
+    """
     generated: dict[str, bytes] = {}
+    durable_source = root / DURABLE_CONTEXT_RULE
+    durable_bytes = durable_source.read_bytes() if durable_source.exists() else None
     for skill_file in sorted((root / "skills").glob("*/SKILL.md")):
-        rel = skill_file.parent.relative_to(root) / CHECK_UPDATE_SCRIPT
-        generated[rel.as_posix()] = rendered_check_update.encode()
+        skill_dir = skill_file.parent.relative_to(root)
+        generated[(skill_dir / CHECK_UPDATE_SCRIPT).as_posix()] = (
+            rendered_check_update.encode()
+        )
+        if DURABLE_CONTEXT_COPY.as_posix() in skill_file.read_text():
+            if durable_bytes is None:
+                raise SystemExit(
+                    f"ERROR: {skill_file} links {DURABLE_CONTEXT_COPY} but "
+                    f"{DURABLE_CONTEXT_RULE} does not exist"
+                )
+            generated[(skill_dir / DURABLE_CONTEXT_COPY).as_posix()] = durable_bytes
     return generated
+
+
+def shared_asset_source(rel: str) -> str:
+    if rel.endswith(DURABLE_CONTEXT_COPY.name):
+        return DURABLE_CONTEXT_RULE.as_posix()
+    return CHECK_UPDATE_SCRIPT.as_posix()
 
 
 def collect_codex_plugin_tree(
@@ -409,14 +430,6 @@ def collect_codex_plugin_tree(
     for rel, content in generated_skill_files.items():
         generated[f"plugins/waza/{rel}"] = content
     return generated
-
-
-def should_include_codex_mirror_file(path: Path) -> bool:
-    if any(part in CODEX_MIRROR_IGNORED_DIRS for part in path.parts):
-        return False
-    if path.name in CODEX_MIRROR_IGNORED_NAMES:
-        return False
-    return path.suffix not in CODEX_MIRROR_IGNORED_SUFFIXES
 
 
 def main() -> int:
@@ -453,7 +466,7 @@ def main() -> int:
     package_actual = package_json.read_text() if package_json.exists() else ""
     readme = root / "README.md"
     readme_actual = readme.read_text() if readme.exists() else ""
-    readme_rendered = render_readme(readme_actual, version)
+    readme_rendered = render_readme(readme_actual)
     pinned_scripts = [
         (
             root / "scripts" / "setup-rule.sh",
@@ -482,11 +495,11 @@ def main() -> int:
             break
     if not rendered_check_update:
         raise SystemExit(f"ERROR: missing {CHECK_UPDATE_SCRIPT}")
-    skill_update_scripts = collect_skill_update_scripts(root, rendered_check_update)
+    skill_shared_assets = collect_skill_shared_assets(root, rendered_check_update)
     codex_plugin_tree = collect_codex_plugin_tree(
         root,
         codex_plugin_rendered,
-        skill_update_scripts,
+        skill_shared_assets,
     )
 
     dispatcher_template = root / "scripts" / "dispatcher-template.md"
@@ -559,12 +572,12 @@ def main() -> int:
             )
             sys.stderr.write(diff("package.json", package_rendered, package_actual))
             drift = True
-        for rel, expected in skill_update_scripts.items():
+        for rel, expected in skill_shared_assets.items():
             path = root / rel
             actual = path.read_bytes() if path.exists() else b""
             if actual != expected:
                 print(
-                    f"DRIFT: {rel} is out of sync with {CHECK_UPDATE_SCRIPT}.\n"
+                    f"DRIFT: {rel} is out of sync with {shared_asset_source(rel)}.\n"
                     f"Run scripts/build_metadata.py (no flags) to regenerate.",
                     file=sys.stderr,
                 )
@@ -598,7 +611,7 @@ def main() -> int:
         print("ok: README.md install URLs use latest release assets")
         print(f"ok: package.json pinned to v{version}")
         print(f"ok: installer defaults pinned to v{version}")
-        print("ok: skill-local update checkers match generator")
+        print("ok: skill-local shared assets match generator")
         print(f"ok: {dispatcher_target.relative_to(root)} matches generator")
         return 0
 
@@ -629,12 +642,12 @@ def main() -> int:
             print(f"wrote: {script.relative_to(root)} ({field_label}=v{version})")
         else:
             print(f"ok: {script.relative_to(root)} {field_label} already pinned")
-    for rel, expected in skill_update_scripts.items():
+    for rel, expected in skill_shared_assets.items():
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists() or path.read_bytes() != expected:
             path.write_bytes(expected)
-            print(f"wrote: {rel} (copied update checker)")
+            print(f"wrote: {rel} (copied from {shared_asset_source(rel)})")
     if dispatcher_actual != dispatcher_rendered:
         dispatcher_target.write_text(dispatcher_rendered)
         print(

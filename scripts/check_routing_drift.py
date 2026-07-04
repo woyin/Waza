@@ -10,11 +10,12 @@ generated.
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from pathlib import Path
 
-SKILL_REF_RE = re.compile(r"skills/([a-z][a-z0-9_-]*)/SKILL\.md")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from skill_frontmatter import SKILL_REF_RE  # noqa: E402
 
 
 def main() -> int:

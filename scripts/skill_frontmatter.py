@@ -13,9 +13,37 @@ VERSION file).
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from pathlib import Path
 from typing import NoReturn
+
+# Shared across the generator (build_metadata.py), the verifier
+# (skill_checks.py), and the packaging filter (packaging_filter.py) so the
+# three can never disagree on what counts as local cache noise or a skill
+# reference. Edit here only.
+CODEX_MIRROR_IGNORED_DIRS = {
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+}
+CODEX_MIRROR_IGNORED_NAMES = {
+    ".DS_Store",
+}
+CODEX_MIRROR_IGNORED_SUFFIXES = {
+    ".pyc",
+    ".pyo",
+}
+SKILL_REF_RE = re.compile(r"skills/([a-z][a-z0-9_-]*)/SKILL\.md")
+
+
+def should_include_codex_mirror_file(path: Path) -> bool:
+    if any(part in CODEX_MIRROR_IGNORED_DIRS for part in path.parts):
+        return False
+    if path.name in CODEX_MIRROR_IGNORED_NAMES:
+        return False
+    return path.suffix not in CODEX_MIRROR_IGNORED_SUFFIXES
 
 
 def fail(message: str) -> NoReturn:

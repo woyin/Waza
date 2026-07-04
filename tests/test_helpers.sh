@@ -36,7 +36,10 @@ make_tmpdir() {
 copy_repo() {
   local dest="$1"
   mkdir -p "$dest"
-  ( cd "$ROOT" && tar --exclude './.git' --exclude '.git' -cf - . ) | ( cd "$dest" && tar -xf - )
+  # Mirror the packager's file set (tracked + untracked-unignored): smokes test
+  # the current worktree, but gitignored junk (dist/, __pycache__, local caches)
+  # must not leak into the copy and diverge it from what actually ships.
+  ( cd "$ROOT" && git ls-files --cached --others --exclude-standard -z | tar --null -cf - -T - ) | ( cd "$dest" && tar -xf - )
 }
 
 # Stub curl that drops a fixed payload at the -o output path. Used by installer
@@ -56,8 +59,9 @@ CURL
   chmod +x "$bin_dir/curl"
 }
 
-# Build a stub PATH bin dir with python3, mkdir, mktemp, rm symlinked from the
-# real environment. Returns the bin_dir path.
+# Build a stub PATH bin dir with the tools setup-rule.sh needs (python3,
+# mkdir, mktemp, rm, plus tr/awk for the Title Case marker fallback) symlinked
+# from the real environment. Returns the bin_dir path.
 prepare_codex_installer_bin() {
   local bin_dir="$1"
   mkdir -p "$bin_dir"
@@ -65,4 +69,6 @@ prepare_codex_installer_bin() {
   ln -s /bin/mkdir "$bin_dir/mkdir"
   ln -s "$(command -v mktemp)" "$bin_dir/mktemp"
   ln -s /bin/rm "$bin_dir/rm"
+  ln -s "$(command -v tr)" "$bin_dir/tr"
+  ln -s "$(command -v awk)" "$bin_dir/awk"
 }

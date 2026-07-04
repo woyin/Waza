@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Validate Waza skill metadata, references, marketplace, and resolver invariants.
 
-Driver only. Validation logic lives in two sibling modules so both can be
-imported and unit-tested without invoking argparse:
-  - `skill_frontmatter.py`  -- parse_frontmatter, parse_when_to_use_keywords, fail
-  - `skill_checks.py`       -- all check_* functions
+Driver only. Validation logic lives in sibling modules so it can be imported
+and unit-tested without invoking argparse:
+  - `skill_frontmatter.py`  -- parsing plus constants shared with codegen
+  - `skill_checks.py`       -- facade re-exporting every check from the domain
+    modules `checks_content.py`, `checks_distribution.py`, `checks_routing.py`
 
 Run as: python3 scripts/verify_skills.py [--root PATH] [--skills-only]
 
@@ -32,6 +33,7 @@ from skill_checks import (  # noqa: E402
     check_markdown_links,
     check_no_root_skill,
     check_outcome_contract,
+    check_portable_invocations,
     check_portable_skill_surface,
     check_readme_install_command,
     check_release_workflow_npm_surface,
@@ -73,6 +75,7 @@ def main() -> int:
     skill_names = set(skill_descriptions)
     check_description_conformance(skill_descriptions)
     check_outcome_contract(skill_files)
+    check_portable_invocations(root, skill_files)
     if (root / "rules" / "durable-context.md").exists():
         check_durable_context_and_paths(root, skill_files)
 

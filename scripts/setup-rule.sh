@@ -9,7 +9,7 @@
 # label is derived from the rule slug (e.g. anti-patterns -> Anti-Patterns,
 # english -> English Coaching), with explicit overrides for the established
 # product names so existing AGENTS.md installs remain idempotent.
-set -e
+set -euo pipefail
 
 RULE="${1:-}"
 TARGET="${2:-claude-code}"
@@ -60,7 +60,7 @@ fi
 case "$TARGET" in
   claude-code|claude)
     mkdir -p "$HOME/.claude/rules"
-    curl -fsSL "$RAW" -o "$HOME/.claude/rules/${RULE}.md"
+    curl -fsSL --connect-timeout 10 --max-time 60 "$RAW" -o "$HOME/.claude/rules/${RULE}.md"
     echo "Waza ${MARKER_LABEL} installed for Claude Code."
     ;;
 
@@ -73,7 +73,7 @@ case "$TARGET" in
     mkdir -p "$HOME/.codex"
     tmp="$(mktemp)"
     trap 'rm -f "$tmp"' EXIT
-    curl -fsSL "$RAW" -o "$tmp"
+    curl -fsSL --connect-timeout 10 --max-time 60 "$RAW" -o "$tmp"
 
     # Inline Python: this script is installed via `curl | bash` (no companion
     # .py file on the user's machine), so the AGENTS.md edit logic stays self-

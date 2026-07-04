@@ -1,6 +1,6 @@
 #!/bin/bash
 # Install Waza statusline into Claude Code
-set -e
+set -euo pipefail
 
 CLAUDE_DIR="$HOME/.claude"
 DEST="$CLAUDE_DIR/statusline.sh"
@@ -98,7 +98,7 @@ if [ -n "$EXISTING" ]; then
 fi
 
 # Download statusline script (after any confirmation prompt)
-curl -fsSL "$RAW" -o "$DEST"
+curl -fsSL --connect-timeout 10 --max-time 60 "$RAW" -o "$DEST"
 chmod +x "$DEST"
 
 # Write statusLine into ~/.claude/settings.json

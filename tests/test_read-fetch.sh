@@ -17,21 +17,38 @@ fi
 
 tmpdir=$(make_tmpdir)
 
+# Transient example.com hiccups must not fail the mandatory test gate; retry
+# each successful-path fetch with backoff before declaring the network broken.
+retry3() {
+  local out="$1" err="$2"
+  shift 2
+  local attempt
+  for attempt in 1 2 3; do
+    if "$@" >"$out" 2>"$err"; then
+      return 0
+    fi
+    sleep $((attempt * 2))
+  done
+  echo "read fetch smoke: failed after 3 attempts: $*" >&2
+  cat "$err" >&2
+  return 1
+}
+
 # Case 1: default invocation extracts content with structured stderr.
-bash "$ROOT/skills/read/scripts/fetch.sh" "https://example.com" \
-  >"$tmpdir/out.md" 2>"$tmpdir/err.log"
+retry3 "$tmpdir/out.md" "$tmpdir/err.log" \
+  bash "$ROOT/skills/read/scripts/fetch.sh" "https://example.com"
 grep -q "Example Domain" "$tmpdir/out.md"
 grep -q "tier=local status=ok" "$tmpdir/err.log"
 
 # Case 2: --use-proxy flag is accepted (and local tier still tried first).
-bash "$ROOT/skills/read/scripts/fetch.sh" --use-proxy "https://example.com" \
-  >"$tmpdir/proxy-out.md" 2>"$tmpdir/proxy-err.log"
+retry3 "$tmpdir/proxy-out.md" "$tmpdir/proxy-err.log" \
+  bash "$ROOT/skills/read/scripts/fetch.sh" --use-proxy "https://example.com"
 grep -q "Example Domain" "$tmpdir/proxy-out.md"
 grep -q "tier=local status=ok" "$tmpdir/proxy-err.log"
 
 # Case 3: fetch_local.py runnable directly with --prefer stdlib.
-python3 "$ROOT/skills/read/scripts/fetch_local.py" --prefer stdlib \
-  "https://example.com" >"$tmpdir/local.md" 2>"$tmpdir/local.err"
+retry3 "$tmpdir/local.md" "$tmpdir/local.err" \
+  python3 "$ROOT/skills/read/scripts/fetch_local.py" --prefer stdlib "https://example.com"
 grep -q "Example Domain" "$tmpdir/local.md"
 grep -q "extractor=stdlib" "$tmpdir/local.err"
 

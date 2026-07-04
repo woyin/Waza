@@ -12,6 +12,13 @@ zipinfo -1 "$tmpdir/waza.zip" >"$tmpdir/manifest"
 grep -qx 'SKILL.md' "$tmpdir/manifest"
 test "$(zipinfo -1 "$tmpdir/waza.zip" | grep -ciE '(^|/)skill\.md$')" -eq 1
 
+# RESOLVER.md is routing for direct installs; the ZIP root dispatcher already
+# inlines the routing table, so shipping it would be dead weight.
+if grep -qx 'skills/RESOLVER.md' "$tmpdir/manifest"; then
+  echo "package smoke: skills/RESOLVER.md must not ship in the ZIP"
+  exit 1
+fi
+
 # Required helper scripts are bundled.
 for required in \
   scripts/check-update.sh \

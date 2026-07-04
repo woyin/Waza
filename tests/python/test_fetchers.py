@@ -1,22 +1,15 @@
 """Unit tests for the read skill's platform fetchers.
 
 Network paths stay untested by design; these cover the pure seams (URL
-parsing, block-to-Markdown transforms, frontmatter rendering) and the
-no-credentials early exit. A stub `requests` module is injected before import
-so the tests run on machines and CI runners without the optional dependency.
+parsing, block-to-Markdown transforms, frontmatter rendering) and setup-error
+guidance without requiring optional dependencies or credentials.
 """
 
 import sys
-import types
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "skills" / "read" / "scripts"))
-
-# fetch_feishu exits at import time when `requests` is missing; a stub module
-# keeps the pure functions importable everywhere. Network tests would need the
-# real package, and none exist here.
-sys.modules.setdefault("requests", types.ModuleType("requests"))
 
 import fetch_feishu  # noqa: E402
 import fetch_weixin  # noqa: E402
@@ -82,6 +75,17 @@ def test_feishu_get_token_without_credentials_is_offline(monkeypatch):
     token, err = fetch_feishu.get_token()
     assert token is None
     assert "not set" in err
+    assert "lark-cli auth login" in err
+
+
+def test_feishu_get_token_without_requests_names_both_paths(monkeypatch):
+    monkeypatch.setattr(fetch_feishu, "requests", None)
+    monkeypatch.setenv("FEISHU_APP_ID", "app")
+    monkeypatch.setenv("FEISHU_APP_SECRET", "secret")
+    token, err = fetch_feishu.get_token()
+    assert token is None
+    assert "pip install requests" in err
+    assert "lark-cli docs +fetch" in err
 
 
 def test_weixin_to_markdown_frontmatter():

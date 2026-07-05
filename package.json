@@ -1,6 +1,6 @@
 {
   "name": "@tw93/waza",
-  "version": "3.31.0",
+  "version": "3.31.1",
   "description": "Waza engineering skills for Claude Code, Codex, Antigravity, OpenCode, Pi, and compatible coding agents.",
   "license": "MIT",
   "repository": {

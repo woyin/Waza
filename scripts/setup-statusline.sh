@@ -5,7 +5,7 @@ set -euo pipefail
 CLAUDE_DIR="$HOME/.claude"
 DEST="$CLAUDE_DIR/statusline.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-WAZA_REF="${WAZA_REF:-v3.31.0}"
+WAZA_REF="${WAZA_REF:-v3.31.1}"
 
 case "$WAZA_REF" in
   main|v[0-9]*.[0-9]*.[0-9]*) ;;
